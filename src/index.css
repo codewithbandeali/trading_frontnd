@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --primary-bg: theme('colors.white');
+  --secondary-bg: theme('colors.gray.50');
+  --tertiary-bg: theme('colors.gray.100');
+  --primary-text: theme('colors.gray.900');
+  --secondary-text: theme('colors.gray.600');
+  --accent-color: theme('colors.blue.600');
+  --accent-hover: theme('colors.blue.700');
+  --border-color: theme('colors.gray.200');
+}
+
+:root.theme-dark {
+  --primary-bg: theme('colors.gray.900');
+  --secondary-bg: theme('colors.gray.800');
+  --tertiary-bg: theme('colors.gray.950');
+  --primary-text: theme('colors.gray.100');
+  --secondary-text: theme('colors.gray.400');
+  --accent-color: theme('colors.blue.500');
+  --accent-hover: theme('colors.blue.400');
+  --border-color: theme('colors.gray.700');
+}
+
+:root.theme-blue {
+  --primary-bg: theme('colors.blue.50');
+  --secondary-bg: theme('colors.blue.100');
+  --tertiary-bg: theme('colors.blue.200');
+  --primary-text: theme('colors.gray.900');
+  --secondary-text: theme('colors.gray.700');
+  --accent-color: theme('colors.blue.600');
+  --accent-hover: theme('colors.blue.700');
+  --border-color: theme('colors.blue.200');
+}
+
+:root.theme-neon {
+  --primary-bg: theme('colors.black');
+  --secondary-bg: theme('colors.gray.900');
+  --tertiary-bg: theme('colors.gray.800');
+  --primary-text: theme('colors.purple.300');
+  --secondary-text: theme('colors.purple.200');
+  --accent-color: theme('colors.pink.500');
+  --accent-hover: theme('colors.pink.400');
+  --border-color: theme('colors.purple.800');
+}
+
+:root.theme-professional {
+  --primary-bg: theme('colors.slate.100');
+  --secondary-bg: theme('colors.slate.200');
+  --tertiary-bg: theme('colors.slate.300');
+  --primary-text: theme('colors.slate.900');
+  --secondary-text: theme('colors.slate.600');
+  --accent-color: theme('colors.slate.800');
+  --accent-hover: theme('colors.slate.700');
+  --border-color: theme('colors.slate.300');
+}
+
+body {
+  @apply antialiased;
+  background-color: var(--tertiary-bg);
+  color: var(--primary-text);
+}
+
+.bg-theme-primary {
+  background-color: var(--primary-bg);
+}
+
+.bg-theme-secondary {
+  background-color: var(--secondary-bg);
+}
+
+.bg-theme-tertiary {
+  background-color: var(--tertiary-bg);
+}
+
+.text-theme-primary {
+  color: var(--primary-text);
+}
+
+.text-theme-secondary {
+  color: var(--secondary-text);
+}
+
+.border-theme {
+  border-color: var(--border-color);
+}
+
+.accent-theme {
+  color: var(--accent-color);
+}
+
+.accent-theme-hover:hover {
+  color: var(--accent-hover);
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-theme-secondary;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-theme-tertiary rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent-color);
+}
