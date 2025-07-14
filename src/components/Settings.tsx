@@ -1,251 +1,316 @@
-import React, { useState } from 'react';
-import { Shield, Bell, Palette, Wallet, ChevronRight, Check } from 'lucide-react';
-import { clsx } from 'clsx';
-import { useTheme } from '../context/ThemeContext';
-interface SettingsSectionProps {
-  title: string;
-  icon: React.ReactNode;
-  children: React.ReactNode;
+// 
+import React, { useState, useEffect } from 'react';
+import { Settings as SettingsIcon, Mail, Shield, Palette, Save, Check } from 'lucide-react';
+import API from '../services/api';
+
+interface NotificationPreferences {
+  alerts: boolean;
+  news: boolean;
+  reports: boolean;
 }
 
-interface ThemeOption {
-  name: string;
-  value: string;
-  primary: string;
-  secondary: string;
-  background: string;
+interface UserSettings {
+  email: string;
+  emailNotifications: NotificationPreferences;
+  theme: string;
+  twoFactorEnabled: boolean;
 }
 
-const themes: ThemeOption[] = [
-  { 
-    name: 'Light',
-    value: 'light',
-    primary: 'bg-white',
-    secondary: 'bg-gray-50',
-    background: 'bg-gray-100'
-  },
-  { 
-    name: 'Dark',
-    value: 'dark',
-    primary: 'bg-gray-900',
-    secondary: 'bg-gray-800',
-    background: 'bg-gray-950'
-  },
-  { 
-    name: 'Blue',
-    value: 'blue',
-    primary: 'bg-blue-600',
-    secondary: 'bg-blue-500',
-    background: 'bg-blue-50'
-  },
-  { 
-    name: 'Neon',
-    value: 'neon',
-    primary: 'bg-purple-600',
-    secondary: 'bg-pink-500',
-    background: 'bg-black'
-  },
-  { 
-    name: 'Professional',
-    value: 'professional',
-    primary: 'bg-slate-800',
-    secondary: 'bg-slate-700',
-    background: 'bg-slate-100'
-  }
+const themes = [
+  { id: 'dark', name: 'Dark', colors: { primary: '#1a1a1a', secondary: '#2d2d2d', accent: '#3b82f6' } },
+  { id: 'midnight', name: 'Midnight Blue', colors: { primary: '#0f172a', secondary: '#1e293b', accent: '#60a5fa' } },
+  { id: 'navy', name: 'Navy Blue', colors: { primary: '#0a192f', secondary: '#172a45', accent: '#64ffda' } },
+  { id: 'ocean', name: 'Ocean Deep', colors: { primary: '#0d1117', secondary: '#161b22', accent: '#58a6ff' } },
+  { id: 'purple', name: 'Purple Night', colors: { primary: '#0e0e23', secondary: '#1a1a3e', accent: '#9333ea' } },
+  { id: 'forest', name: 'Forest Dark', colors: { primary: '#0f1419', secondary: '#1c2128', accent: '#10b981' } },
+  { id: 'charcoal', name: 'Charcoal', colors: { primary: '#18181b', secondary: '#27272a', accent: '#f59e0b' } },
+  { id: 'amoled', name: 'AMOLED Black', colors: { primary: '#000000', secondary: '#0a0a0a', accent: '#ef4444' } }
 ];
 
-const SettingsSection = ({ title, icon, children }: SettingsSectionProps) => (
-  <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
-    <div className="flex items-center gap-2 mb-4">
-      {icon}
-      <h2 className="text-lg font-semibold">{title}</h2>
-    </div>
-    {children}
-  </div>
-);
-
-export function Settings() {
-  const { theme, setTheme } = useTheme();
-  const [selectedTheme, setSelectedTheme] = useState('light');
-  const [emailNotifications, setEmailNotifications] = useState({
-    trades: true,
-    alerts: true,
-    news: false,
-    reports: true
+const Settings: React.FC = () => {
+  const [settings, setSettings] = useState<UserSettings>({
+    email: '',
+    emailNotifications: {
+      alerts: true,
+      news: true,
+      reports: true
+    },
+    theme: 'dark',
+    twoFactorEnabled: false
   });
-  const [smsNotifications, setSmsNotifications] = useState({
-    trades: false,
-    alerts: true,
-    news: false,
-    reports: false
-  });
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [notificationDelay, setNotificationDelay] = useState('instant');
+  const [saved, setSaved] = useState(false);
+  const [activeTab, setActiveTab] = useState('notifications');
 
-  const handleEmailToggle = (type: keyof typeof emailNotifications) => {
-    setEmailNotifications(prev => ({
-      ...prev,
-      [type]: !prev[type]
-    }));
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  useEffect(() => {
+    // Apply theme to document
+    const theme = themes.find(t => t.id === settings.theme);
+    if (theme) {
+      document.documentElement.style.setProperty('--primary-bg', theme.colors.primary);
+      document.documentElement.style.setProperty('--secondary-bg', theme.colors.secondary);
+      document.documentElement.style.setProperty('--accent-color', theme.colors.accent);
+    }
+  }, [settings.theme]);
+
+  const fetchSettings = async () => {
+    try {
+      
+      const { data } = await API.get<UserSettings>('settings/');
+      setSettings(data);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+    }
   };
 
-  const handleSMSToggle = (type: keyof typeof smsNotifications) => {
-    setSmsNotifications(prev => ({
-      ...prev,
-      [type]: !prev[type]
-    }));
+  const handleSaveSettings = async () => {
+    try {
+      const { status } = await API.put("settings/", settings); // axios resp
+     if (status >= 200 && status < 300) {
+        setSaved(true);        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (error) {
+      console.error('Error saving settings:', error);
+    }
   };
 
-  const handleThemeChange = (newTheme: string) => {
-    setTheme(newTheme);
-    setSelectedTheme(newTheme);
+  const handleNotificationToggle = (type: keyof NotificationPreferences) => {
+    setSettings({
+      ...settings,
+      emailNotifications: {
+        ...settings.emailNotifications,
+        [type]: !settings.emailNotifications[type]
+      }
+    });
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6">Settings</h1>
-      
-      <SettingsSection title="Security" icon={<Shield className="w-5 h-5 text-blue-500" />}>
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium">Two-Factor Authentication</h3>
-              <p className="text-sm text-gray-500">Add an extra layer of security to your account</p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={twoFactorEnabled}
-                onChange={(e) => setTwoFactorEnabled(e.target.checked)}
-              />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-            </label>
-          </div>
-          <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1">
-            Change Password <ChevronRight className="w-4 h-4" />
+    <div className="p-6 bg-gray-900 text-white min-h-screen">
+      <div className="max-w-4xl mx-auto">
+        <div className="flex items-center gap-3 mb-8">
+          <SettingsIcon className="w-8 h-8 text-blue-500" />
+          <h1 className="text-3xl font-bold">Settings</h1>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-8 bg-gray-800 p-1 rounded-lg">
+          <button
+            onClick={() => setActiveTab('notifications')}
+            className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+              activeTab === 'notifications' 
+                ? 'bg-blue-600 text-white' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Mail className="w-4 h-4 inline mr-2" />
+            Email Notifications
+          </button>
+          <button
+            onClick={() => setActiveTab('security')}
+            className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+              activeTab === 'security' 
+                ? 'bg-blue-600 text-white' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Shield className="w-4 h-4 inline mr-2" />
+            Security
+          </button>
+          <button
+            onClick={() => setActiveTab('appearance')}
+            className={`flex-1 py-2 px-4 rounded-md transition-colors ${
+              activeTab === 'appearance' 
+                ? 'bg-blue-600 text-white' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <Palette className="w-4 h-4 inline mr-2" />
+            Appearance
           </button>
         </div>
-      </SettingsSection>
 
-      <SettingsSection title="Notifications" icon={<Bell className="w-5 h-5 text-blue-500" />}>
-        <div className="space-y-6">
-          <div>
-            <h3 className="font-medium mb-3">Delivery Speed</h3>
-            <div className="flex gap-3">
-              {['instant', '5min', '15min', '30min', '1hour'].map((delay) => (
-                <button
-                  key={delay}
-                  onClick={() => setNotificationDelay(delay)}
-                  className={clsx(
-                    'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                    notificationDelay === delay
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  )}
-                >
-                  {delay === 'instant' ? 'Instant' : delay}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="font-medium mb-3">Email Notifications</h3>
-            <div className="space-y-3">
-              {Object.entries(emailNotifications).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700 capitalize">{key}</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={value}
-                      onChange={() => handleEmailToggle(key as keyof typeof emailNotifications)}
+        {/* Content */}
+        <div className="bg-gray-800 rounded-lg p-6">
+          {activeTab === 'notifications' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold mb-4">Email Notification Preferences</h2>
+              
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                  <div>
+                    <h3 className="font-medium">Alerts</h3>
+                    <p className="text-sm text-gray-400">Receive email notifications when your price alerts are triggered</p>
+                  </div>
+                  <button
+                    onClick={() => handleNotificationToggle('alerts')}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.emailNotifications.alerts ? 'bg-blue-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.emailNotifications.alerts ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <div>
-            <h3 className="font-medium mb-3">SMS Notifications</h3>
-            <div className="space-y-3">
-              {Object.entries(smsNotifications).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between">
-                  <span className="text-sm text-gray-700 capitalize">{key}</span>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="sr-only peer"
-                      checked={value}
-                      onChange={() => handleSMSToggle(key as keyof typeof smsNotifications)}
+                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                  <div>
+                    <h3 className="font-medium">News</h3>
+                    <p className="text-sm text-gray-400">Get notified about important market news and updates</p>
+                  </div>
+                  <button
+                    onClick={() => handleNotificationToggle('news')}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.emailNotifications.news ? 'bg-blue-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.emailNotifications.news ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                     />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
+                  </button>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </SettingsSection>
 
-      <SettingsSection title="Theme" icon={<Palette className="w-5 h-5 text-blue-500" />}>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {themes.map((themeOption) => (
-            <button
-              key={themeOption.value}
-              onClick={() => handleThemeChange(themeOption.value)}
-              className={clsx(
-                'relative p-4 rounded-lg border-2 transition-all bg-theme-primary',
-                theme === themeOption.value
-                  ? 'border-accent-theme'
-                  : 'border-transparent hover:border-theme'
-              )}
-            >
-              <div className="space-y-2 mb-2">
-                <div className={clsx('h-3 rounded', themeOption.primary)} />
-                <div className={clsx('h-3 rounded', themeOption.secondary)} />
-                <div className={clsx('h-3 rounded', themeOption.background)} />
+                <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                  <div>
+                    <h3 className="font-medium">Reports</h3>
+                    <p className="text-sm text-gray-400">Receive daily/weekly trading reports and analytics</p>
+                  </div>
+                  <button
+                    onClick={() => handleNotificationToggle('reports')}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      settings.emailNotifications.reports ? 'bg-blue-600' : 'bg-gray-600'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        settings.emailNotifications.reports ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                </div>
               </div>
-              <span className="text-sm font-medium text-theme-primary">{themeOption.name}</span>
-              {theme === themeOption.value && (
-                <div className="absolute top-2 right-2 accent-theme">
-                  <Check className="w-4 h-4" />
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
-      </SettingsSection>
 
-      <SettingsSection title="API Integration" icon={<Wallet className="w-5 h-5 text-blue-500" />}>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">API Key</label>
-            <input
-              type="password"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              value="••••••••••••••••"
-              readOnly
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700">API Secret</label>
-            <input
-              type="password"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              value="••••••••••••••••"
-              readOnly
-            />
-          </div>
-          <button className="text-blue-600 hover:text-blue-700 text-sm font-medium flex items-center gap-1">
-            Update API Keys <ChevronRight className="w-4 h-4" />
+              <div className="mt-6 pt-6 border-t border-gray-700">
+                <label className="block text-sm font-medium mb-2">Email Address</label>
+                <input
+                  type="email"
+                  value={settings.email}
+                  onChange={(e) => setSettings({ ...settings, email: e.target.value })}
+                  className="w-full px-4 py-2 bg-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="your@email.com"
+                />
+                <p className="text-xs text-gray-400 mt-2">All notifications will be sent to this email address</p>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'security' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold mb-4">Security Settings</h2>
+              
+              <div className="flex items-center justify-between p-4 bg-gray-700 rounded-lg">
+                <div>
+                  <h3 className="font-medium">Two-Factor Authentication</h3>
+                  <p className="text-sm text-gray-400">Add an extra layer of security to your account</p>
+                </div>
+                <button
+                  onClick={() => setSettings({ ...settings, twoFactorEnabled: !settings.twoFactorEnabled })}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    settings.twoFactorEnabled ? 'bg-blue-600' : 'bg-gray-600'
+                  }`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      settings.twoFactorEnabled ? 'translate-x-6' : 'translate-x-1'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              <div className="p-4 bg-gray-700 rounded-lg">
+                <h3 className="font-medium mb-2">Password</h3>
+                <p className="text-sm text-gray-400 mb-4">Last changed 30 days ago</p>
+                <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">
+                  Change Password
+                </button>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'appearance' && (
+            <div className="space-y-6">
+              <h2 className="text-xl font-semibold mb-4">Theme Selection</h2>
+              
+              <div className="grid grid-cols-2 gap-4">
+                {themes.map((theme) => (
+                  <button
+                    key={theme.id}
+                    onClick={() => setSettings({ ...settings, theme: theme.id })}
+                    className={`p-4 rounded-lg border-2 transition-all ${
+                      settings.theme === theme.id 
+                        ? 'border-blue-500 bg-gray-700' 
+                        : 'border-gray-600 hover:border-gray-500'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="font-medium">{theme.name}</span>
+                      {settings.theme === theme.id && (
+                        <Check className="w-5 h-5 text-blue-500" />
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <div 
+                        className="w-8 h-8 rounded"
+                        style={{ backgroundColor: theme.colors.primary }}
+                      />
+                      <div 
+                        className="w-8 h-8 rounded"
+                        style={{ backgroundColor: theme.colors.secondary }}
+                      />
+                      <div 
+                        className="w-8 h-8 rounded"
+                        style={{ backgroundColor: theme.colors.accent }}
+                      />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Save Button */}
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={handleSaveSettings}
+            className={`px-6 py-3 rounded-lg flex items-center gap-2 transition-all ${
+              saved 
+                ? 'bg-green-600 hover:bg-green-700' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            {saved ? (
+              <>
+                <Check className="w-5 h-5" />
+                Saved Successfully
+              </>
+            ) : (
+              <>
+                <Save className="w-5 h-5" />
+                Save Settings
+              </>
+            )}
           </button>
         </div>
-      </SettingsSection>
+      </div>
     </div>
   );
-}
+};
+
+export default Settings;
